@@ -5,19 +5,20 @@ import 'package:intl/intl.dart';
 import '../data_manage_component/db_helper.dart';
 
 
-class TaskInputListScreen extends StatefulWidget {
+class InputListLaterScreen extends StatefulWidget {
   final DateTime selectedDate;
 
-  const TaskInputListScreen({super.key, required this.selectedDate});
+  const InputListLaterScreen({super.key, required this.selectedDate});
 
   @override
-  State<TaskInputListScreen> createState() => _TaskInputListScreenState();
+  State<InputListLaterScreen> createState() => _InputListLaterScreenState();
 }
 
-class _TaskInputListScreenState extends State<TaskInputListScreen> {
+class _InputListLaterScreenState extends State<InputListLaterScreen> {
 
   List<Map<String, dynamic>> _allData = [];
   bool _isLoading = true;
+  late double ratingValue;  // Rating_Bar 별점 점수 저장하기 위한 변수
 
 // Get All Data From Database
   void _refreshData() async {
@@ -35,29 +36,21 @@ class _TaskInputListScreenState extends State<TaskInputListScreen> {
   }
 
 // Add Data
-  Future<void> _addData() async {
-    await SQLHelper.createData(_titleController.text, _descController.text);
+  Future<void> _addData(rating, date) async {
+    await SQLHelper.createData(rating, _thanksController.text, _reliefController.text, _goodController.text, date);
     _refreshData();
   }
 
 // Update Data
-  Future<void> _updateData(int id) async {
-    await SQLHelper.updateData(id, _titleController.text, _descController.text);
+  Future<void> _updateData(date) async {
+    await SQLHelper.updateDescData(date, _thanksController.text, _reliefController.text, _goodController.text);
     _refreshData();
   }
 
-// Delete Data (삭제 아이콘 누르면 밑에 빨간색 표시되는 부분)
-  Future<void> _deleteData(int id) async {
-    await SQLHelper.deleteData(id);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      backgroundColor: Colors.redAccent,
-      content: Text("Data Deleted"),
-    ));
-    _refreshData();
-  }
 
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descController = TextEditingController();
+  final TextEditingController _thanksController = TextEditingController();
+  final TextEditingController _reliefController = TextEditingController();
+  final TextEditingController _goodController = TextEditingController();
 
   void showBottomSheet(int? id) async {
     // if id is not null then it will update other wise it will new data
@@ -66,8 +59,10 @@ class _TaskInputListScreenState extends State<TaskInputListScreen> {
     if (id != null) {
       final existingData =
       _allData.firstWhere((element) => element['id'] == id);
-      _titleController.text = existingData['title'];
-      _descController.text = existingData['desc'];
+
+      _thanksController.text = existingData['thanksDesc'];
+      _reliefController.text = existingData['reliefDesc'];
+      _goodController.text = existingData['goodDesc'];
     }
 
     showModalBottomSheet(
@@ -87,7 +82,7 @@ class _TaskInputListScreenState extends State<TaskInputListScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 TextField(
-                  controller: _titleController,
+                  controller: _thanksController,
                   decoration: const InputDecoration(
                     //labelText: "Title",
                     focusedBorder: OutlineInputBorder(
@@ -97,31 +92,13 @@ class _TaskInputListScreenState extends State<TaskInputListScreen> {
                     labelText: "'감사한 일' / '다행인 일' / '잘한 일' 중 1가지 입력",
                   ),
                 ),
-                SizedBox(height: 15),
-                TextField(
-                  controller: _descController,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(width: 1, color: Colors.redAccent),
-                    ),
-                    border: OutlineInputBorder(),
-                    labelText: "내용 입력",
-                  ),
-                ),
                 SizedBox(height: 20),
                 Center(
                   child: ElevatedButton(
                     onPressed: () async {
-                      if (id == null) {
-                        await _addData();
-                      }
-                      if (id != null) {
-                        await _updateData(id);
-                      }
+                        await _updateData(widget.selectedDate);
 
-                      _titleController.text = "";
-                      _descController.text = "";
+                      _thanksController.text = "";
 
                       Navigator.of(context).pop();
                       print("Data Added");
@@ -161,6 +138,7 @@ class _TaskInputListScreenState extends State<TaskInputListScreen> {
         child: Column(
           children: [
             Container(
+              //color: Colors.amberAccent,
               padding: EdgeInsets.only(top: 10),
               height: 150,
               //color: Colors.greenAccent,
@@ -196,7 +174,7 @@ class _TaskInputListScreenState extends State<TaskInputListScreen> {
                         ),
                         RatingBar.builder(
                           initialRating: 3,
-                          minRating: 0.5,
+                          minRating: 1,
                           direction: Axis.horizontal,
                           allowHalfRating: true,
                           itemCount: 5,
@@ -205,7 +183,10 @@ class _TaskInputListScreenState extends State<TaskInputListScreen> {
                             Icons.favorite,
                             color: Colors.pinkAccent,
                           ),
+
+                          // 여기서 점수 받는 변수 선언한 뒤 rating 받기
                           onRatingUpdate: (rating) {
+                            ratingValue = rating as double;
                             print(rating);
                           },
                         ),
@@ -221,69 +202,106 @@ class _TaskInputListScreenState extends State<TaskInputListScreen> {
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: Colors.indigo,
-                    width: 3,
+                    width: 1,
                   ),
                   color: Colors.indigoAccent,
                 ),
                 margin: EdgeInsets.fromLTRB(10, 0, 10, 20),
                 //padding: EdgeInsets.only(top: 50),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // '1. 감사한 일' 박스
                     Container(
-                      margin: EdgeInsets.only(top: 10),
-                      //color: Colors.tealAccent,
-                      child: Text(
-                        "<'감사한 일' / '다행인 일' / '잘한 일'>",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          //color: Colors.white,
-                        ),
+                      margin: EdgeInsets.fromLTRB(15, 15, 15, 10),
+                      padding: EdgeInsets.fromLTRB(25, 0, 25, 0),
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "1. 감사한 일",
+                            style: TextStyle(
+                              fontSize: 27,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                            },
+                            icon: Icon(
+                              Icons.edit,
+                              color: Colors.indigo,
+                              size: 30,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: _allData.length,
-                        itemBuilder: (context, index) =>
-                            Card(
-                              margin: EdgeInsets.all(15),
-                              child: ListTile(
-                                title: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 5),
-                                  child: Text(
-                                    _allData[index]['title'],
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                ),
-                                subtitle: Text(_allData[index]['desc']),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      onPressed: () {
-                                        showBottomSheet(_allData[index]['id']);
-                                      },
-                                      icon: Icon(
-                                        Icons.edit,
-                                        color: Colors.indigo,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: () {
-                                        _deleteData(_allData[index]['id']);
-                                      },
-                                      icon: Icon(
-                                        Icons.delete,
-                                        color: Colors.redAccent,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                    // '2. 다행인 일' 박스
+                    Container(
+                      margin: EdgeInsets.fromLTRB(15, 15, 15, 10),
+                      padding: EdgeInsets.fromLTRB(25, 0, 25, 0),
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "2. 다행인 일",
+                            style: TextStyle(
+                              fontSize: 27,
+                              fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                            },
+                            icon: Icon(
+                              Icons.edit,
+                              color: Colors.indigo,
+                              size: 30,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // '3. 잘한 일' 박스
+                    Container(
+                      margin: EdgeInsets.fromLTRB(15, 15, 15, 10),
+                      padding: EdgeInsets.fromLTRB(25, 0, 25, 0),
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "3. 잘한 일",
+                            style: TextStyle(
+                              fontSize: 27,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                            },
+                            icon: Icon(
+                              Icons.edit,
+                              color: Colors.indigo,
+                              size: 30,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -292,10 +310,6 @@ class _TaskInputListScreenState extends State<TaskInputListScreen> {
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showBottomSheet(null),
-        child: Icon(Icons.add),
       ),
     );
   }

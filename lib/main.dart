@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:momoro_app_beta/screen/tablecalendar_screen.dart';
 
+
 void main() async {
   await initializeDateFormatting();
 
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

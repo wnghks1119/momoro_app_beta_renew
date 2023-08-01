@@ -1,7 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:momoro_app_beta/screen/task_input_list_screen.dart';
 import 'package:table_calendar/table_calendar.dart';
+
+import '../data_manage_component/db_helper.dart';
+import 'input_list_first.dart';
+import 'input_list_later.dart';
+//import 'input_list_later.dart';
 
 
 class TableCalendarScreen extends StatefulWidget {
@@ -14,27 +18,24 @@ class TableCalendarScreen extends StatefulWidget {
 class _TableCalendarScreenState extends State<TableCalendarScreen> {
   DateTime? selectedDay;
 
+  List<Map<String, dynamic>> _dayData = [];
+  bool _isLoading = true;
+
+  //
+  void _refreshData() async {
+    final data = await SQLHelper.getDayData(selectedDay!);
+    setState(() {
+      _dayData = data;
+      _isLoading = false;
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-
-        /*
-        actions: [
-          IconButton(
-            icon: Icon(Icons.home),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TableCalendarScreen(),
-                ),
-              );
-            },
-          ),
-        ],
-         */
       ),
 
       body: TableCalendar(
@@ -51,13 +52,23 @@ class _TableCalendarScreenState extends State<TableCalendarScreen> {
           showCupertinoDialog(
             context: context,
             builder: (BuildContext context) {
-              return TaskInputListScreen(
-                selectedDate: DateTime(
-                  selectedDay.year,
-                  selectedDay.month,
-                  selectedDay.day,
-                ),
-              );
+              if (_dayData == null) {
+                return InputListFirstScreen(
+                  selectedDate: DateTime(
+                    selectedDay.year,
+                    selectedDay.month,
+                    selectedDay.day,
+                  ),
+                );
+              } else {
+                return InputListFirstScreen(
+                  selectedDate: DateTime(
+                    selectedDay.year,
+                    selectedDay.month,
+                    selectedDay.day,
+                  ),
+                );
+              }
             },
           );
         },
